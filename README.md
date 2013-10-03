@@ -1,18 +1,18 @@
-# PyZMQache
-## Embedable Cache for Python using ZeroMQ Transports
+## PyZMQache
+### Embedable Cache for Python using ZeroMQ Transports
 
-## Features
+### Features
 * Simple configuration
 * Easily embedded
 * Performant
 
-## Using PyZMQache
+### Using PyZMQache
 
-### Configuration
+#### Configuration
 
 See the configuration documentation here: TODO
 
-##That Legal Thing...
+### That Legal Thing...
 
 This software library is released to you under the [MIT License](http://opensource.org/licenses/MIT). See [LICENSE](https://github.com/zinic/pyzmqache/blob/master/LICENSE) for more information.
 
