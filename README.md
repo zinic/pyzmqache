@@ -1,3 +1,5 @@
+[![Build Status](http://jenkins.projectmeniscus.org/job/PyZMQache/badge/icon)](http://jenkins.projectmeniscus.org/job/PyZMQache/)
+
 ## PyZMQache
 ### Embedable Cache for Python using ZeroMQ Transports
 
