@@ -35,12 +35,15 @@ class CacheClient(object):
             _LOG.exception(ex)
         return None
 
-    def put(self, key, value):
+    def put(self, key, value, ttl=None):
         msg = dict()
 
         msg['operation'] = 'put'
         msg['key'] = key
         msg['value'] = value
+
+        if ttl:
+            msg['ttl'] = ttl
 
         try:
             self._socket.send(msgpack.packb(msg))

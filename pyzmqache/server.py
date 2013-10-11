@@ -1,57 +1,87 @@
 import zmq
+import time
 import msgpack
+import threading
 
-from logging import getLogger as get_logger
+from pyzmqache.log import get_logger
 
 
 _LOG = get_logger(__name__)
+_DEFAULT_CACHE_TTL = 120
 
 
-def _strval(string):
-    strval = 0
-    for c in string:
-        strval += ord(c)
-    return _strval
+class CacheItem(object):
+
+    def __init__(self, value, expires_at):
+        self.expires_at = expires_at
+        self.value = value
 
 
 class SimpleCache(object):
 
     def __init__(self):
+        self._lock = threading.RLock()
         self._cache = dict()
 
+    def stop(self):
+        self._cache_sweeper.cancel()
+
+    def sweep(self):
+        remove_keys = list()
+        with self._lock:
+            now = time.time()
+
+            for key, value in self._cache.iteritems():
+                if now > value.expires_at:
+                    remove_keys.append(key)
+            for remove_key in remove_keys:
+                del self._cache[remove_key]
+
     def get(self, key):
-        item = self._cache.get(_strval(key))
+        item = None
+        with self._lock:
+            item = self._cache.get(key)
         return item.value if item else None
 
-    def put(self, key, value):
-        self._cache[_strval(key)] = CacheItem(value)
+    def put(self, key, value, ttl):
+        with self._lock:
+            now = time.time()
+            self._cache[key] = CacheItem(value, now + ttl)
 
     def delete(self, key):
-        return self._cache.pop(_strval(key), None) != None
-
-
-class CacheItem(object):
-
-    def __init__(self, value):
-        self.value = value
+        deleted = False
+        with self._lock:
+            deleted = self._cache.pop(key, None) != None
+        return deleted
 
 
 class CacheServer(object):
 
     def __init__(self, cfg):
         self._cfg = cfg
+        self._cache = SimpleCache()
+        self._is_running = False
+        self._context = None
+        self._socket = None
 
-    def start(self):
+        # Start the TTL sweeper
+        self._cache_sweeper = threading.Thread(target=self._sweep_cache)
+
+    def _sweep_cache(self):
+        while self._is_running:
+            self._cache.sweep()
+            time.sleep(1)
+
+    def start(self, bind_url):
+        self._is_running = True
+
         self._context = zmq.Context()
         self._socket = self._context.socket(zmq.REP)
-        self._cache = SimpleCache()
 
-        #self._socket.bind('tcp://127.0.0.1:{}'.format(
-        #    self._cfg.network.cache_port))
+        self._socket.bind(bind_url)
+        self._cache_sweeper.start()
 
-        self._socket.bind('ipc:///tmp/zcache.fifo')
-
-        while True:
+        while self._is_running:
             try:
                 bmsg = self._socket.recv()
                 msg = msgpack.unpackb(bmsg)
@@ -61,6 +91,10 @@ class CacheServer(object):
                 _LOG.exception(ex)
                 break
 
+    def stop(self):
+        self._is_running = False
+        self._context.destroy()
+
     def _handle_msg(self, msg):
         op = msg['operation']
 
@@ -68,23 +102,30 @@ class CacheServer(object):
         reply['status'] = 'error'
 
         if op == 'get':
-            cached_obj = self._cache.get(msg['key'])
-            _LOG.debug('Getting {}'.format(msg['key']))
-
-            if cached_obj:
-                reply['status'] = 'found'
-                reply['value'] = cached_obj
-            else:
-                reply['value'] = None
+            self._on_get(reply, msg['key'])
         elif op == 'put':
-            _LOG.debug('Putting {}:{}'.format(msg['key'], msg['value']))
-            self._cache.put(msg['key'], msg['value'])
-            reply['status'] = 'ok'
+            ttl = msg['ttl'] if 'ttl' in msg else _DEFAULT_CACHE_TTL
+            self._on_put(reply, msg['key'], msg['value'], ttl)
         elif op == 'del':
-            _LOG.debug('Deleting {}'.format(msg['key']))
-            if self._cache.delete(msg['key']):
-                reply['status'] = 'deleted'
-            else:
-                reply['status'] = 'not_found'
+            self._on_delete(reply, msg['key'])
 
         self._socket.send(msgpack.packb(reply))
+
+    def _on_get(self, reply, key):
+        cached_obj = self._cache.get(key)
+
+        if cached_obj:
+            reply['status'] = 'found'
+            reply['value'] = cached_obj
+        else:
+            reply['value'] = None
+
+    def _on_put(self, reply, key, value, ttl):
+        self._cache.put(key, value, ttl)
+        reply['status'] = 'ok'
+
+    def _on_delete(self, reply, key):
+        if self._cache.delete(key):
+            reply['status'] = 'deleted'
+        else:
+            reply['status'] = 'not_found'
