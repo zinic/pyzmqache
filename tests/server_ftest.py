@@ -24,7 +24,7 @@ class WhenTestingCache(unittest.TestCase):
         self.server_process.terminate()
 
     def test_performance(self):
-        expected = { 'msg_kind': 'test', 'value': 'magic' }
+        expected = {'msg_kind': 'test', 'value': 'magic'}
 
         now = time.time()
         iterations = 0

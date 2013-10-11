@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
-import sys
-import os
-
 from setuptools import setup, find_packages
+
 
 def read(relative):
     contents = open(relative, 'r').read()
@@ -11,7 +8,7 @@ def read(relative):
 setup(
     name='pyzmqache',
     version=read('VERSION')[0],
-    description='Embedable cache for Python using ZeroMQ transports .',
+    description='Embeddable cache for Python using ZeroMQ transports .',
     author='John Hopper',
     author_email='john.hopper@jpserver.net',
     url='https://github.com/zinic/pyzmqache',
@@ -23,8 +20,6 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
-        'Programming Language :: Cython',
-        'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.3',
         'Topic :: Internet',
