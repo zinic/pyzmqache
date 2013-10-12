@@ -14,6 +14,18 @@ class WhenTestingCache(unittest.TestCase):
         cfg.connection.cache_uri = 'ipc:///tmp/zcache.fifo'
 
         server_instance = CacheServer()
+        self.server_instance = server_instance
+
+        def profile_server():
+            server_instance
+            cfg
+
+            import cProfile
+            cProfile.runctx('server_instance.start(cfg)',
+                globals(), locals())
+
+        # Uncomment to profile the server
+        #self.server_process = Process(target=profile_server)
 
         self.server_process = Process(
             target=server_instance.start,
@@ -23,7 +35,8 @@ class WhenTestingCache(unittest.TestCase):
         self.client = CacheClient(cfg)
 
     def tearDown(self):
-        self.server_process.terminate()
+        self.client.halt()
+        self.server_process.join()
 
     def test_ttls(self):
         expected = { 'msg_kind': 'test', 'value': 'magic' }
@@ -46,7 +59,7 @@ class WhenTestingCache(unittest.TestCase):
         now = time.time()
         iterations = 0
 
-        while iterations <= 10000:
+        while iterations <= 1000:
             self.client.put('test', expected)
 
             value = self.client.get('test')

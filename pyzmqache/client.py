@@ -5,7 +5,8 @@ from logging import getLogger as get_logger
 
 
 _LOG = get_logger(__name__)
-
+_HALT_MSG = { 'operation': 'halt'}
+_DEFAULT_TTL = 120
 
 class CacheClient(object):
 
@@ -16,8 +17,11 @@ class CacheClient(object):
         self._socket.connect(self._cfg.connection.cache_uri)
 
     def _send(self, msg):
+        self._socket.send(msgpack.packb(msg))
+
+    def _request(self, msg):
         try:
-            self._socket.send(msgpack.packb(msg))
+            self._send(msg)
 
             breply = self._socket.recv()
             return msgpack.unpackb(breply)
@@ -25,40 +29,41 @@ class CacheClient(object):
             _LOG.exception(ex)
         return None
 
+    def halt(self):
+         self._send(_HALT_MSG)
+
     def get(self, key):
-        msg = dict()
+        msg = {
+            'operation': 'get',
+            'key': key}
 
-        msg['operation'] = 'get'
-        msg['key'] = key
-
-        reply = self._send(msg)
+        reply = self._request(msg)
         status = reply.get('status') if reply else None
 
-        return reply['value'] if status and status == 'found' else None
+        if status and status == 'found':
+            return msgpack.unpackb(reply['value'])
+        return None
 
-    def put(self, key, value, ttl=None):
-        msg = dict()
+    def put(self, key, value, ttl=_DEFAULT_TTL):
+        msg = {
+            'operation': 'put',
+            'key': key,
+            'ttl': ttl,
+            'value': msgpack.packb(value)}
 
-        msg['operation'] = 'put'
-        msg['key'] = key
-        msg['value'] = value
-
-        if ttl:
-            msg['ttl'] = ttl
-
-        reply = self._send(msg)
+        reply = self._request(msg)
         status = reply.get('status') if reply else None
 
         if status and status != 'ok':
             raise Exception(str(reply.get('error')))
 
     def delete(self, key):
-        msg = dict()
+        msg = {
+            'operation': 'delete',
+            'key': key
+        }
 
-        msg['operation'] = 'delete'
-        msg['key'] = key
-
-        reply = self._send(msg)
+        reply = self._request(msg)
         status = reply.get('status') if reply else None
 
         if status:

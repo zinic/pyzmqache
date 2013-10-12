@@ -102,8 +102,7 @@ class CacheServer(object):
     def _handle_msg(self, msg):
         operation = msg['operation']
 
-        reply = dict()
-        reply['status'] = 'error'
+        reply = {'status': 'error'}
 
         if operation == 'get':
             self._on_get(reply, msg['key'])
@@ -116,7 +115,10 @@ class CacheServer(object):
         elif operation == 'delete':
             self._on_delete(reply, msg['key'])
 
-        self._socket.send(msgpack.packb(reply))
+        if operation == 'halt':
+            self.stop()
+        else:
+            self._socket.send(msgpack.packb(reply))
 
     def _on_get(self, reply, key):
         cached_obj = self._cache.get(key)
