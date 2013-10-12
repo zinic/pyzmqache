@@ -42,7 +42,7 @@ class WhenTestingCache(unittest.TestCase):
 
 
     def test_performance(self):
-        expected = { 'msg_kind': 'test', 'value': 'magic' }
+        expected = {'msg_kind': 'test', 'value': 'magic'}
 
         now = time.time()
         iterations = 0
