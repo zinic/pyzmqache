@@ -17,23 +17,26 @@ class CacheClient(object):
         #    self._cfg.network.cache_port))
         self._socket.connect('ipc:///tmp/zcache.fifo')
 
+    def _send(self, msg):
+        try:
+            self._socket.send(msgpack.packb(msg))
+
+            breply = self._socket.recv()
+            return msgpack.unpackb(breply)
+        except Exception as ex:
+            _LOG.exception(ex)
+        return None
+
     def get(self, key):
         msg = dict()
 
         msg['operation'] = 'get'
         msg['key'] = key
 
-        try:
-            self._socket.send(msgpack.packb(msg))
+        reply = self._send(msg)
+        status = reply.get('status') if reply else None
 
-            breply = self._socket.recv()
-            reply = msgpack.unpackb(breply)
-
-            if reply['status'] == 'found':
-                return reply['value']
-        except Exception as ex:
-            _LOG.exception(ex)
-        return None
+        return reply['value'] if status and status == 'found' else None
 
     def put(self, key, value, ttl=None):
         msg = dict()
@@ -45,34 +48,23 @@ class CacheClient(object):
         if ttl:
             msg['ttl'] = ttl
 
-        try:
-            self._socket.send(msgpack.packb(msg))
+        reply = self._send(msg)
+        status = reply.get('status') if reply else None
 
-            breply = self._socket.recv()
-            reply = msgpack.unpackb(breply)
-
-            if reply['status'] != 'ok':
-                raise Exception(reply['error'])
-        except Exception as ex:
-            _LOG.exception(ex)
+        if status and status != 'ok':
+            raise Exception(str(reply.get('error')))
 
     def delete(self, key):
         msg = dict()
 
-        msg['operation'] = 'del'
+        msg['operation'] = 'delete'
         msg['key'] = key
 
-        try:
-            self._socket.send(msgpack.packb(msg))
+        reply = self._send(msg)
+        status = reply.get('status') if reply else None
 
-            breply = self._socket.recv()
-            reply = msgpack.unpackb(breply)
+        if status:
+            if status not in ('deleted', 'not_found'):
+                raise Exception(str(reply.get('error')))
 
-            if reply['status'] == 'ok':
-                return False
-            elif reply['status'] == 'deleted':
-                return True
-            else:
-                raise Exception(reply['error'])
-        except Exception as ex:
-            _LOG.exception(ex)
+            return status == 'deleted'

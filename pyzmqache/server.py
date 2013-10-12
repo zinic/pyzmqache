@@ -96,17 +96,20 @@ class CacheServer(object):
         self._context.destroy()
 
     def _handle_msg(self, msg):
-        op = msg['operation']
+        operation = msg['operation']
 
         reply = dict()
         reply['status'] = 'error'
 
-        if op == 'get':
+        if operation == 'get':
             self._on_get(reply, msg['key'])
-        elif op == 'put':
-            ttl = msg['ttl'] if 'ttl' in msg else _DEFAULT_CACHE_TTL
-            self._on_put(reply, msg['key'], msg['value'], ttl)
-        elif op == 'del':
+        elif operation == 'put':
+            self._on_put(
+                reply,
+                msg['key'],
+                msg['value'],
+                msg.get('ttl', _DEFAULT_CACHE_TTL))
+        elif operation == 'delete':
             self._on_delete(reply, msg['key'])
 
         self._socket.send(msgpack.packb(reply))

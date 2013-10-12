@@ -35,7 +35,7 @@ class WhenTestingCache(unittest.TestCase):
         value = self.client.get('test')
         self.assertEqual(expected, value)
 
-        time.sleep(2)
+        time.sleep(5)
 
         value = self.client.get('test')
         self.assertIsNone(value)
