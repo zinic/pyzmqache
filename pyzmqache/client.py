@@ -13,9 +13,7 @@ class CacheClient(object):
         self._cfg = cfg
         self._context = zmq.Context()
         self._socket = self._context.socket(zmq.REQ)
-        #self._socket.connect('tcp://127.0.0.1:{}'.format(
-        #    self._cfg.network.cache_port))
-        self._socket.connect('ipc:///tmp/zcache.fifo')
+        self._socket.connect(self._cfg.connection.cache_uri)
 
     def _send(self, msg):
         try:

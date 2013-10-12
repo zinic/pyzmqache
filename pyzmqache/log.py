@@ -25,10 +25,6 @@ class LoggingManager(object):
         self._root_logger.addHandler(handler)
 
     def _clean_handlers(self):
-        """
-        Removes all current handlers.
-        TODO:Review - Not sure if this may cause problems.
-        """
         [self._root_logger.removeHandler(hdlr) for hdlr in self._handlers]
         del self._handlers[:]
 

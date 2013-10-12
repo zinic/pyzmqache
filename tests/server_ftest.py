@@ -11,14 +11,13 @@ class WhenTestingCache(unittest.TestCase):
 
     def setUp(self):
         cfg = mock.MagicMock()
-        cfg.network.cache_port = 5000
+        cfg.connection.cache_uri = 'ipc:///tmp/zcache.fifo'
 
-        server_instance = CacheServer(cfg)
+        server_instance = CacheServer()
 
-        # 'tcp://127.0.0.1:{}' for TCP Networking
         self.server_process = Process(
             target=server_instance.start,
-            args=('ipc:///tmp/zcache.fifo', ))
+            args=(cfg, ))
         self.server_process.start()
 
         self.client = CacheClient(cfg)

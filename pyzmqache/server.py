@@ -57,8 +57,7 @@ class SimpleCache(object):
 
 class CacheServer(object):
 
-    def __init__(self, cfg):
-        self._cfg = cfg
+    def __init__(self):
         self._cache = SimpleCache()
         self._is_running = False
         self._context = None
@@ -68,25 +67,30 @@ class CacheServer(object):
         self._cache_sweeper = threading.Thread(target=self._sweep_cache)
 
     def _sweep_cache(self):
+        """
+        Timer method for sweeping the cache of TTL expired items.
+        """
         while self._is_running:
             self._cache.sweep()
             time.sleep(1)
 
-    def start(self, bind_url):
+    def start(self, cfg):
+        # Mark that the server is running
         self._is_running = True
 
-        self._context = zmq.Context()
-        self._socket = self._context.socket(zmq.REP)
-
-        self._socket.bind(bind_url)
+        # Start the cache TTl sweeper
         self._cache_sweeper.start()
 
+        # Bind ZMQ
+        self._context = zmq.Context()
+        self._socket = self._context.socket(zmq.REP)
+        self._socket.bind(cfg.connection.cache_uri)
+
+        # Continue running until told otherwise
         while self._is_running:
             try:
                 bmsg = self._socket.recv()
-                msg = msgpack.unpackb(bmsg)
-
-                self._handle_msg(msg)
+                self._handle_msg(msgpack.unpackb(bmsg))
             except Exception as ex:
                 _LOG.exception(ex)
                 break
