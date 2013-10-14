@@ -5,8 +5,9 @@ from logging import getLogger as get_logger
 
 
 _LOG = get_logger(__name__)
-_HALT_MSG = { 'operation': 'halt'}
+_HALT_MSG = {'operation': 'halt'}
 _DEFAULT_TTL = 120
+
 
 class CacheClient(object):
 
@@ -30,7 +31,7 @@ class CacheClient(object):
         return None
 
     def halt(self):
-         self._send(_HALT_MSG)
+        self._send(_HALT_MSG)
 
     def get(self, key):
         msg = {

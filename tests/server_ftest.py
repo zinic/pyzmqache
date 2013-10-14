@@ -21,8 +21,7 @@ class WhenTestingCache(unittest.TestCase):
             cfg
 
             import cProfile
-            cProfile.runctx('server_instance.start(cfg)',
-                globals(), locals())
+            cProfile.runctx('server_instance.start(cfg)', globals(), locals())
 
         # Uncomment to profile the server
         #self.server_process = Process(target=profile_server)
@@ -39,7 +38,7 @@ class WhenTestingCache(unittest.TestCase):
         self.server_process.join()
 
     def test_ttls(self):
-        expected = { 'msg_kind': 'test', 'value': 'magic' }
+        expected = {'msg_kind': 'test', 'value': 'magic'}
 
         now = time.time()
         self.client.put('test', expected, 2)
@@ -51,7 +50,6 @@ class WhenTestingCache(unittest.TestCase):
 
         value = self.client.get('test')
         self.assertIsNone(value)
-
 
     def test_performance(self):
         expected = {'msg_kind': 'test', 'value': 'magic'}

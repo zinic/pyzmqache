@@ -51,7 +51,7 @@ class SimpleCache(object):
     def delete(self, key):
         deleted = False
         with self._lock:
-            deleted = self._cache.pop(key, None) != None
+            deleted = self._cache.pop(key, None) is not None
         return deleted
 
 
