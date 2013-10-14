@@ -5,6 +5,39 @@ import unittest
 from multiprocessing import Process
 
 from pyzmqache import CacheClient, CacheServer
+from pyzmqache.server import CacheItem, SimpleCache
+
+
+class whenTestingCacheItem(unittest.TestCase):
+
+    def setup(self):
+        self.cache_item = CacheItem('value', 3000)
+
+    def cache_item_ttl(self):
+        self.assertEqual(self.cache_item.value, 'value')
+
+    def cache_item_ttl(self):
+        self.assertEqual(self.cache_item.expires_at, 3000)
+
+
+class whenTestingSimpleCache(unittest.TestCase):
+
+    def setUp(self):
+        self.simpleCache = SimpleCache()
+
+    def test_simple_cache_get_result_none_key(self):
+        self.assertIsNone(self.simpleCache.get(None))
+
+    def test_simple_cache_get_result_none_existent(self):
+        self.assertIsNone(self.simpleCache.get('key1234'))
+
+    def test_simple_cache_get_result_value(self):
+        self.simpleCache.put('key', '12345', time.time())
+        self.assertEqual(self.simpleCache.get('key'), '12345')
+
+    def test_simple_cache_put_key_value(self):
+        self.simpleCache.put('key', '12345', time.time())
+        self.assertEqual(self.simpleCache.get('key'), '12345')
 
 
 class WhenTestingCache(unittest.TestCase):
