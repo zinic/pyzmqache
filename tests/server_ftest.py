@@ -25,6 +25,7 @@ class whenTestingSimpleCache(unittest.TestCase):
     def setUp(self):
         self.simpleCache = SimpleCache()
 
+    #get tests
     def test_simple_cache_get_result_none_key(self):
         self.assertIsNone(self.simpleCache.get(None))
 
@@ -35,9 +36,43 @@ class whenTestingSimpleCache(unittest.TestCase):
         self.simpleCache.put('key', '12345', time.time())
         self.assertEqual(self.simpleCache.get('key'), '12345')
 
+    #put tests
     def test_simple_cache_put_key_value(self):
         self.simpleCache.put('key', '12345', time.time())
         self.assertEqual(self.simpleCache.get('key'), '12345')
+
+    #delete tests
+    def test_simple_cache_delete_key_value_none(self):
+        self.assertFalse(self.simpleCache.delete(None))
+
+    def test_simple_cache_delete_key_value(self):
+        self.simpleCache.put('key', '12345', time.time())
+        self.assertTrue(self.simpleCache.delete('key'))
+
+    def test_simple_cache_delete_key_value_multiple(self):
+        self.simpleCache.put('key', '12345', time.time())
+        self.simpleCache.put('key', '12345', time.time())
+        self.assertTrue(self.simpleCache.delete('key'))
+        self.assertFalse(self.simpleCache.delete('key'))
+
+    def test_sweep_no_expired_keys(self):
+        self.simpleCache._cache['key'] = CacheItem('12345', time.time() + 10)
+        self.simpleCache.sweep()
+        self.assertIn('key', self.simpleCache._cache)
+
+    def test_sweep_has_expired_key(self):
+        self.simpleCache._cache['key1'] = CacheItem('12345', time.time())
+        self.simpleCache._cache['key2'] = CacheItem('12345', time.time())
+        self.simpleCache._cache['key3'] = CacheItem('12345', time.time())
+        self.simpleCache.sweep()
+        self.assertDictContainsSubset({}, self.simpleCache._cache)
+
+    def test_sweep_simplecache_has_key(self):
+        self.simpleCache._cache['key1'] = CacheItem('12345', time.time() + 10)
+        self.simpleCache._cache['key2'] = CacheItem('12345', time.time())
+        self.simpleCache._cache['key3'] = CacheItem('12345', time.time())
+        self.simpleCache.sweep()
+        self.assertIn('key1', self.simpleCache._cache)
 
 
 class WhenTestingCache(unittest.TestCase):
