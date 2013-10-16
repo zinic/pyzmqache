@@ -5,6 +5,74 @@ import unittest
 from multiprocessing import Process
 
 from pyzmqache import CacheClient, CacheServer
+from pyzmqache.server import CacheItem, SimpleCache
+
+
+class whenTestingCacheItem(unittest.TestCase):
+
+    def setup(self):
+        self.cache_item = CacheItem('value', 3000)
+
+    def cache_item_ttl(self):
+        self.assertEqual(self.cache_item.value, 'value')
+
+    def cache_item_ttl(self):
+        self.assertEqual(self.cache_item.expires_at, 3000)
+
+
+class whenTestingSimpleCache(unittest.TestCase):
+
+    def setUp(self):
+        self.simpleCache = SimpleCache()
+
+    #get tests
+    def test_simple_cache_get_result_none_key(self):
+        self.assertIsNone(self.simpleCache.get(None))
+
+    def test_simple_cache_get_result_none_existent(self):
+        self.assertIsNone(self.simpleCache.get('key1234'))
+
+    def test_simple_cache_get_result_value(self):
+        self.simpleCache.put('key', '12345', time.time())
+        self.assertEqual(self.simpleCache.get('key'), '12345')
+
+    #put tests
+    def test_simple_cache_put_key_value(self):
+        self.simpleCache.put('key', '12345', time.time())
+        self.assertEqual(self.simpleCache.get('key'), '12345')
+
+    #delete tests
+    def test_simple_cache_delete_key_value_none(self):
+        self.assertFalse(self.simpleCache.delete(None))
+
+    def test_simple_cache_delete_key_value(self):
+        self.simpleCache.put('key', '12345', time.time())
+        self.assertTrue(self.simpleCache.delete('key'))
+
+    def test_simple_cache_delete_key_value_multiple(self):
+        self.simpleCache.put('key', '12345', time.time())
+        self.simpleCache.put('key', '12345', time.time())
+        self.assertTrue(self.simpleCache.delete('key'))
+        self.assertFalse(self.simpleCache.delete('key'))
+
+    def test_sweep_no_expired_keys(self):
+        self.simpleCache._cache['key'] = CacheItem('12345', time.time() + 10)
+        self.simpleCache.sweep()
+        self.assertIn('key', self.simpleCache._cache)
+
+    def test_sweep_has_expired_key(self):
+        self.simpleCache._cache['key1'] = CacheItem('12345', time.time())
+        self.simpleCache._cache['key2'] = CacheItem('12345', time.time())
+        self.simpleCache._cache['key3'] = CacheItem('12345', time.time())
+        self.simpleCache.sweep()
+        self.assertDictContainsSubset({}, self.simpleCache._cache)
+
+    def test_sweep_simplecache_has_key(self):
+        self.simpleCache._cache['key1'] = CacheItem('12345', time.time() + 10)
+        self.simpleCache._cache['key2'] = CacheItem('12345', time.time())
+        self.simpleCache._cache['key3'] = CacheItem('12345', time.time())
+        self.simpleCache.sweep()
+        self.assertIn('key1', self.simpleCache._cache)
 
 
 class WhenTestingCache(unittest.TestCase):
@@ -21,8 +89,7 @@ class WhenTestingCache(unittest.TestCase):
             cfg
 
             import cProfile
-            cProfile.runctx('server_instance.start(cfg)',
-                globals(), locals())
+            cProfile.runctx('server_instance.start(cfg)', globals(), locals())
 
         # Uncomment to profile the server
         #self.server_process = Process(target=profile_server)
@@ -39,7 +106,7 @@ class WhenTestingCache(unittest.TestCase):
         self.server_process.join()
 
     def test_ttls(self):
-        expected = { 'msg_kind': 'test', 'value': 'magic' }
+        expected = {'msg_kind': 'test', 'value': 'magic'}
 
         now = time.time()
         self.client.put('test', expected, 2)
@@ -51,7 +118,6 @@ class WhenTestingCache(unittest.TestCase):
 
         value = self.client.get('test')
         self.assertIsNone(value)
-
 
     def test_performance(self):
         expected = {'msg_kind': 'test', 'value': 'magic'}
